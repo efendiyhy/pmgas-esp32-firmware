@@ -9,6 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+if ($env:EK_PMGAS_ONESHOT -ne '1') { throw 'Jalankan melalui installer GitHub: irm https://raw.githubusercontent.com/efendiyhy/pmgas-esp32-firmware/main/install.ps1 | iex' }
 $script:Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:Fqbn = 'esp32:esp32:esp32'
 $script:BoardUrl = 'https://espressif.github.io/arduino-esp32/package_esp32_index.json'
@@ -16,8 +17,7 @@ $script:CoreVersion = '3.3.12'
 $script:LogDir = Join-Path $script:Root 'logs'
 $script:BuildRoot = Join-Path $script:Root 'build'
 $script:ToolsDir = Join-Path $script:Root 'tools'
-$script:DeviceCsv = Join-Path $script:Root 'config\devices.csv'
-foreach ($dir in @($script:LogDir, $script:BuildRoot, $script:ToolsDir, (Join-Path $script:Root 'config'))) {
+foreach ($dir in @($script:LogDir, $script:BuildRoot, $script:ToolsDir)) {
   New-Item -ItemType Directory -Force -Path $dir | Out-Null
 }
 $logName = 'flash-{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss')
@@ -26,7 +26,7 @@ $transcribing = $false
 try { Start-Transcript -LiteralPath $logPath -ErrorAction Stop | Out-Null; $transcribing = $true } catch { Write-Host 'Pencatatan transcript tidak didukung di terminal ini.' }
 
 function Check-Exit([string]$Description) {
-  if ($LASTEXITCODE -ne 0) { throw "$Description gagal (exit code $LASTEXITCODE). Lihat log: $logPath" }
+  if ($LASTEXITCODE -ne 0) { throw "$Description gagal (exit code $LASTEXITCODE). Periksa error terminal; file log sementara akan dibersihkan." }
 }
 function Ask-Choice([string]$Question, [string[]]$Allowed) {
   while ($true) {
@@ -36,8 +36,7 @@ function Ask-Choice([string]$Question, [string[]]$Allowed) {
   }
 }
 function Get-ArduinoCLI {
-  $cmd = Get-Command arduino-cli -ErrorAction SilentlyContinue
-  if ($cmd -and $cmd.Source) { return $cmd.Source }
+  # Always use portable Arduino CLI inside this session. Never modify global CLI.
   $localExe = Join-Path $script:ToolsDir 'arduino-cli.exe'
   if (Test-Path $localExe) { return $localExe }
   if (-not [Environment]::Is64BitOperatingSystem) { throw 'Installer otomatis hanya mendukung Windows 64-bit.' }
@@ -53,6 +52,14 @@ function Ensure-Toolchain([string]$Cli) {
   Write-Host "Arduino CLI: $Cli" -ForegroundColor DarkCyan
   & $Cli version
   Check-Exit 'Periksa Arduino CLI'
+  $actualData = ((& $Cli config get directories.data) | Out-String).Trim().Trim('"')
+  Check-Exit 'Periksa lokasi Arduino data'
+  $actualCache = ((& $Cli config get build_cache.path) | Out-String).Trim().Trim('"')
+  Check-Exit 'Periksa lokasi Arduino build cache'
+  if ($actualData -ne $env:ARDUINO_DIRECTORIES_DATA -or $actualCache -ne $env:ARDUINO_BUILD_CACHE_PATH) {
+    throw "PENGAMAN: konfigurasi Arduino tidak terisolasi. Data=$actualData; Cache=$actualCache. Global Arduino tidak akan dimodifikasi."
+  }
+  Write-Host 'Arduino CLI memakai data & cache TEMP TERISOLASI.' -ForegroundColor Green
   if ($SkipSetup) {
     Write-Host 'SkipSetup aktif: lewati pemasangan board & library.' -ForegroundColor Yellow
     return
@@ -116,8 +123,8 @@ function Pick-Port([string]$Cli, [string]$GivenPort) {
 }
 function Find-Esptool([string]$Cli) {
   $dirs = @()
-  $appdata = Join-Path $env:LOCALAPPDATA 'Arduino15\packages\esp32\tools'
-  $dirs += $appdata
+  # Only consider the isolated Arduino package directory of this invocation.
+  if ($env:ARDUINO_DIRECTORIES_DATA) { $dirs += (Join-Path $env:ARDUINO_DIRECTORIES_DATA 'packages\esp32\tools') }
   try {
     $d = (& $Cli config get directories.data) | Out-String
     if ($LASTEXITCODE -eq 0 -and $d.Trim()) { $dirs += (Join-Path $d.Trim() 'packages\esp32\tools') }
@@ -148,25 +155,6 @@ function Probe-ClassicESP32([string]$Esptool, [string]$SelectedPort) {
     }
   }
   throw 'Gagal memastikan ESP32 klasik dan MAC. Pastikan ESP32 biasa, tidak dipakai Serial Monitor, port benar. Coba tahan BOOT saat verifikasi. Flash dibatalkan.'
-}
-function Check-DeviceMapping([string]$Mac, [string]$SelectedFirmware) {
-  if (-not (Test-Path $script:DeviceCsv)) { return $false }
-  $existing = @(Import-Csv -LiteralPath $script:DeviceCsv | Where-Object { $_.MAC -eq $Mac })
-  if ($existing.Count -eq 0) { return $false }
-  $label = $existing[0].Firmware.ToLowerInvariant()
-  Write-Host "REGISTRASI TERDAHULU: $Mac => $label" -ForegroundColor Cyan
-  if ($label -ne $SelectedFirmware) {
-    throw "BLOKIR: MAC $Mac sebelumnya terdaftar sebagai alat $label, bukan $SelectedFirmware. Cek alat fisik; untuk ganti identitas edit config\devices.csv secara sadar."
-  }
-  return $true
-}
-function Save-DeviceMapping([string]$Mac, [string]$SelectedFirmware) {
-  $devices = @()
-  if (Test-Path $script:DeviceCsv) { $devices += @(Import-Csv -LiteralPath $script:DeviceCsv) }
-  if (@($devices | Where-Object { $_.MAC -eq $Mac }).Count -eq 0) {
-    $devices += [pscustomobject]@{ MAC=$Mac; Firmware=$SelectedFirmware; RegisteredAt=(Get-Date).ToString('yyyy-MM-ddTHH:mm:ss') }
-    $devices | Export-Csv -LiteralPath $script:DeviceCsv -NoTypeInformation -Encoding UTF8
-  }
 }
 
 try {
@@ -199,7 +187,6 @@ try {
   $portChosen = Pick-Port $cli $Port
   $esptool = Find-Esptool $cli
   $mac = Probe-ClassicESP32 $esptool $portChosen
-  $known = Check-DeviceMapping $mac $Firmware
   Write-Host "`nKONFIRMASI FINAL" -ForegroundColor Yellow
   Write-Host " ALAT    : $($Firmware.ToUpperInvariant())"
   Write-Host " CHIP    : ESP32 CLASSIC"
@@ -212,16 +199,15 @@ try {
   Write-Host "`nUPLOAD KE $portChosen ..." -ForegroundColor Cyan
   & $cli upload --fqbn $script:Fqbn --port $portChosen --build-path $buildDir $sketch
   Check-Exit "Upload $sketchName"
-  Save-DeviceMapping $mac $Firmware
   Write-Host "`nSUKSES: firmware $($Firmware.ToUpperInvariant()) berhasil di-upload ke $portChosen / $mac" -ForegroundColor Green
-  Write-Host "Registrasi perangkat disimpan di $script:DeviceCsv" -ForegroundColor Cyan
+  Write-Host 'MAC hanya dipakai untuk verifikasi sesi ini; tidak disimpan ke disk permanen.' -ForegroundColor Cyan
   Write-Host 'Hotspot perangkat muncul setelah boot; buka 192.168.4.1 untuk pengaturan.'
 }
 catch {
   Write-Host "`n[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-  Write-Host "Log (jika tersedia): $logPath" -ForegroundColor Yellow
+  Write-Host 'Log sementara akan otomatis dihapus; salin pesan error terminal bila diperlukan.' -ForegroundColor Yellow
   throw
 }
 finally {
-  if ($transcribing) { Stop-Transcript | Out-Null }
+  if ($transcribing) { try { Stop-Transcript | Out-Null } catch {} }
 }
