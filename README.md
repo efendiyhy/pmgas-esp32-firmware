@@ -7,7 +7,7 @@
 | PM Monitoring | Alat monitoring partikulat | 2× PMS5003T + SHT31 |
 | Gas AQI Monitoring | Alat monitoring gas | MH-Z19C + MiCS-4514 + SHT31 |
 
-**Target hardware:** ESP32 klasik (ESP32-WROOM-32 / ESP32 DevKit V1). Tidak mendukung ESP32-S2/S3/C3 atau perangkat Muon.
+**Target hardware:** ESP32 klasik (ESP32-WROOM-32 / ESP32 DevKit V1).
 
 ## Quick Start — Windows
 
