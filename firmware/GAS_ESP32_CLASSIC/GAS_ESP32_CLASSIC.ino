@@ -74,6 +74,10 @@ uint32_t bootId = 0, seqNumber = 0;
 uint32_t pendingWiFiMs = 0;
 bool pendingWiFi = false, timeConfigured = false;
 unsigned long lastWifiAttempt = 0, lastSampleAt = 0;
+// REV19: one Wi-Fi scan at a time; temporarily pause STA auto-reconnect.
+bool wifiScanActive = false, wifiScanStarted = false;
+uint32_t wifiScanStageAt = 0, wifiReconnectNotBefore = 0;
+uint8_t wifiScanRetries = 0;
 uint32_t lastCloudSave = 0, lastLanSave = 0;
 uint32_t lastCloudAttempt = 0, lastLanAttempt = 0;
 
@@ -495,8 +499,11 @@ void connectStation() {
   Serial.printf("[WIFI] Trying saved SSID: %s (AP remains active)\n", stationSSID.c_str());
 }
 void wifiHeartbeat() {
-  if (pendingWiFi && millis() - pendingWiFiMs > 1000) {
-    pendingWiFi = false; connectStation();
+  // Do not call WiFi.begin while scanning: ESP-IDF prioritizes joining over scan.
+  if (wifiScanActive) return;
+  if (pendingWiFi && (uint32_t)(millis() - pendingWiFiMs) > 1000) {
+    pendingWiFi = false;
+    connectStation();
   }
   if (WiFi.status() == WL_CONNECTED) {
     if (!timeConfigured) {
@@ -506,7 +513,9 @@ void wifiHeartbeat() {
     }
   } else {
     timeConfigured = false;
-    if (stationSSID.length() && (uint32_t)(millis() - lastWifiAttempt) > 20000) connectStation();
+    if (stationSSID.length() &&
+        (int32_t)(millis() - wifiReconnectNotBefore) >= 0 &&
+        (uint32_t)(millis() - lastWifiAttempt) > 20000) connectStation();
   }
 }
 
@@ -595,15 +604,60 @@ void handleHistory() {
   j += "]}";
   respondJSON(j);
 }
-// Scan Wi-Fi async agar web dashboard AP tetap responsif (ESP32 biasa).
+// REV19: scan gets priority over reconnect to missing saved Wi-Fi.
+// Endpoint is polled by EK_Dashboard.h every 900 ms. No blocking scan.
 void handleWiFiScan() {
-  int16_t n = WiFi.scanComplete();
-  if (n == WIFI_SCAN_RUNNING) {
-    respondJSON("{\"ok\":true,\"scanning\":true}"); return;
+  uint32_t now = millis();
+  if (!wifiScanActive) {
+    wifiScanActive = true;
+    wifiScanStarted = false;
+    wifiScanRetries = 0;
+    wifiScanStageAt = now;
+    // Temporarily disconnect STA if its saved network is unavailable.
+    // Do NOT disable the SoftAP: 192.168.4.1 stays available.
+    if (WiFi.status() != WL_CONNECTED) WiFi.disconnect(false, false);
+    Serial.println("[WIFI] WiFi scan requested; STA reconnect paused");
+    respondJSON("{\"ok\":true,\"scanning\":true}");
+    return;
   }
-  if (n == WIFI_SCAN_FAILED) {
-    WiFi.scanNetworks(true, false); // async; SSID tersembunyi tidak ditampilkan
-    respondJSON("{\"ok\":true,\"scanning\":true}"); return;
+  if (!wifiScanStarted) {
+    // Let the asynchronous disconnect settle before starting the radio scan.
+    if ((uint32_t)(now - wifiScanStageAt) < 650) {
+      respondJSON("{\"ok\":true,\"scanning\":true}");
+      return;
+    }
+    int16_t started = WiFi.scanNetworks(true, false);
+    if (started == WIFI_SCAN_FAILED) {
+      if (++wifiScanRetries >= 4) {
+        wifiScanActive = false;
+        wifiReconnectNotBefore = millis() + 8000;
+        Serial.println("[WIFI] WiFi scan could not start after 4 attempts");
+        respondJSON("{\"ok\":false,\"message\":\"Radio Wi-Fi sedang sibuk. Coba Scan lagi.\"}", 503);
+      } else {
+        wifiScanStageAt = now;
+        respondJSON("{\"ok\":true,\"scanning\":true}");
+      }
+      return;
+    }
+    wifiScanStarted = true;
+    wifiScanStageAt = now;
+    Serial.println("[WIFI] Async scan started");
+    respondJSON("{\"ok\":true,\"scanning\":true}");
+    return;
+  }
+  int16_t n = WiFi.scanComplete();
+  if (n == WIFI_SCAN_RUNNING && (uint32_t)(now - wifiScanStageAt) < 14500) {
+    respondJSON("{\"ok\":true,\"scanning\":true}");
+    return;
+  }
+  if (n < 0) {
+    WiFi.scanDelete();
+    wifiScanActive = false;
+    wifiScanStarted = false;
+    wifiReconnectNotBefore = millis() + 8000;
+    Serial.println("[WIFI] WiFi scan failed or timed out");
+    respondJSON("{\"ok\":false,\"message\":\"Scan gagal atau terlalu lama. Coba lagi.\"}", 503);
+    return;
   }
   String j = "{\"ok\":true,\"scanning\":false,\"networks\":[";
   String seen = "\n";
@@ -619,6 +673,10 @@ void handleWiFiScan() {
   }
   WiFi.scanDelete();
   j += "]}";
+  wifiScanActive = false;
+  wifiScanStarted = false;
+  wifiReconnectNotBefore = millis() + 8000;
+  Serial.printf("[WIFI] Scan completed: %u SSID(s)\n", (unsigned)count);
   respondJSON(j);
 }
 void handleWiFiSave() {
