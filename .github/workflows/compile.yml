@@ -1,0 +1,26 @@
+name: Compile both ESP32 classic firmwares
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sketch: [PM_ESP32_CLASSIC, GAS_ESP32_CLASSIC]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install ESP32 core 3.3.12
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.12 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Install libraries
+        run: |
+          arduino-cli lib install "Adafruit SHT31 Library"
+          arduino-cli lib install "Adafruit BusIO"
+      - name: Compile sketch
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 firmware/${{ matrix.sketch }}

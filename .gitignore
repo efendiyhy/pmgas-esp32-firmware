@@ -1,0 +1,11 @@
+# NEVER publish build products, flashing history, or hardware MAC registrations.
+/build/
+/logs/
+/tools/
+/config/devices.csv
+*.bin
+*.elf
+*.map
+*.hex
+*.log
+.DS_Store
