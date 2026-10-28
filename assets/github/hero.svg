@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="ESP32 FIRMWARE TOOL project banner">
+ <defs>
+  <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#0B0F24"/><stop offset=".58" stop-color="#171035"/><stop offset="1" stop-color="#2F1256"/></linearGradient>
+  <linearGradient id="glow"><stop stop-color="#9960F8"/><stop offset="1" stop-color="#E65BBB"/></linearGradient>
+  <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.1" fill="#C5ACF4" opacity=".17"/></pattern>
+ </defs>
+ <rect width="1200" height="320" rx="24" fill="url(#bg)"/><rect width="1200" height="320" rx="24" fill="url(#dots)"/>
+ <path d="M0 0h1200v320" fill="none" stroke="#C9A7FF" opacity=".18" stroke-width="3"/>
+ <path d="M815 0 1200 0 1200 320 700 320Z" fill="#8044DC" opacity=".09"/>
+ <path d="M750 255h78l28-36h50l25-42h55l24-46h80" fill="none" stroke="url(#glow)" stroke-width="3" opacity=".6"/>
+ <path d="M786 279h85l15-26h56l35-52h112" fill="none" stroke="#A387FC" stroke-width="2" opacity=".24"/>
+ <text x="58" y="64" fill="#D1BAFF" font-size="16" letter-spacing="4" font-family="Arial,Helvetica,sans-serif" font-weight="800">EK INSTRUMENTATION</text>
+ <rect x="58" y="83" width="75" height="5" rx="2.5" fill="url(#glow)"/>
+ <text x="55" y="158" font-size="54" font-weight="900" fill="#FFFFFF" letter-spacing="1" font-family="Arial,Helvetica,sans-serif">ESP32 FIRMWARE TOOL</text>
+ <text x="58" y="196" font-size="19" font-weight="600" letter-spacing="2" fill="#D7C8FA" font-family="Arial,Helvetica,sans-serif">ONE-SHOT INSTALLER  /  PM + GAS</text>
+ <rect x="58" y="247" rx="16" width="182" height="32" fill="#FFFFFF" fill-opacity=".075" stroke="#AA93ED" stroke-opacity=".46"/><text x="73" y="268" font-size="12" letter-spacing="1.1" fill="#E9E0FF" font-weight="700">ESP32 CLASSIC</text><rect x="252" y="247" rx="16" width="165" height="32" fill="#FFFFFF" fill-opacity=".075" stroke="#AA93ED" stroke-opacity=".46"/><text x="267" y="268" font-size="12" letter-spacing="1.1" fill="#E9E0FF" font-weight="700">COMPILE + FLASH</text><rect x="429" y="247" rx="16" width="191" height="32" fill="#FFFFFF" fill-opacity=".075" stroke="#AA93ED" stroke-opacity=".46"/><text x="444" y="268" font-size="12" letter-spacing="1.1" fill="#E9E0FF" font-weight="700">CLEANUP</text>
+ <circle cx="1000" cy="153" r="119" fill="#BBA0FA" opacity=".08"/>
+ <circle cx="1000" cy="153" r="94" fill="#A26AF7" opacity=".12" stroke="#D8B7FF" stroke-opacity=".3" stroke-width="2"/>
+ <g transform="translate(939 92) scale(1.1)" style="color:#FFFFFF"><path d="M26 44 17 17 41 32 M70 32 93 17 84 44" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M55 100c29 0 45-18 45-41 0-24-17-42-45-42S10 35 10 59c0 23 16 41 45 41Z" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linejoin="round"/>
+<path d="M34 59h.01 M76 59h.01" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"/>
+<path d="m49 72 6 5 6-5-6-2Z M55 77v7m0 0-6 4m6-4 6 4" fill="none" stroke="currentColor" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10 70h22M8 80h25m69-10H80m25 10H79" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>
+ </svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="EK Air Quality project cat mark">
+ <defs><linearGradient id="b" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#9C63F5"/><stop offset="1" stop-color="#48209C"/></linearGradient></defs>
+ <rect width="512" height="512" rx="112" fill="#0F1327"/>
+ <rect x="32" y="32" width="448" height="448" rx="94" fill="url(#b)"/>
+ <g transform="translate(113 112) scale(2.6)" style="color:#fff"><path d="M26 44 17 17 41 32 M70 32 93 17 84 44" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M55 100c29 0 45-18 45-41 0-24-17-42-45-42S10 35 10 59c0 23 16 41 45 41Z" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linejoin="round"/>
+<path d="M34 59h.01 M76 59h.01" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"/>
+<path d="m49 72 6 5 6-5-6-2Z M55 77v7m0 0-6 4m6-4 6 4" fill="none" stroke="currentColor" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10 70h22M8 80h25m69-10H80m25 10H79" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>
+ </svg>

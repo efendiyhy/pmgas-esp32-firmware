@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" role="img" aria-label="Alur installer firmware ESP32 dari GitHub hingga upload dan cleanup">
+ <rect width="1200" height="340" rx="20" fill="#101529"/>
+ <text x="30" y="54" font-family="Arial,sans-serif" font-size="27" font-weight="800" fill="#FFFFFF">ALUR COMPILE &amp; FLASH</text>
+ <text x="30" y="82" font-family="Arial,sans-serif" font-size="15" fill="#B8BDDA">Tidak perlu Arduino IDE; pengguna tetap memilih perangkat fisik dan port COM dengan benar.</text>
+ <rect x="30" y="140" width="211" height="94" rx="18" fill="#191B32" stroke="#A86AF1" stroke-width="2"/>
+ <rect x="46" y="157" width="7" height="20" rx="3" fill="#A86AF1"/>
+ <text x="64" y="175" font-family="Arial,sans-serif" font-size="21" fill="#FFFFFF" font-weight="750">GitHub main</text>
+ <text x="47" y="202" font-family="Arial,sans-serif" font-size="14" fill="#C9CDE3">Kode firmware terbaru</text><rect x="267" y="140" width="211" height="94" rx="18" fill="#191B32" stroke="#9AC6FC" stroke-width="2"/>
+ <rect x="283" y="157" width="7" height="20" rx="3" fill="#9AC6FC"/>
+ <text x="301" y="175" font-family="Arial,sans-serif" font-size="21" fill="#FFFFFF" font-weight="750">PowerShell</text>
+ <text x="284" y="202" font-family="Arial,sans-serif" font-size="14" fill="#C9CDE3">Installer sekali pakai</text><rect x="504" y="140" width="211" height="94" rx="18" fill="#191B32" stroke="#C99DFC" stroke-width="2"/>
+ <rect x="520" y="157" width="7" height="20" rx="3" fill="#C99DFC"/>
+ <text x="538" y="175" font-family="Arial,sans-serif" font-size="21" fill="#FFFFFF" font-weight="750">Arduino CLI</text>
+ <text x="521" y="202" font-family="Arial,sans-serif" font-size="14" fill="#C9CDE3">Compile + toolchain</text><rect x="741" y="140" width="211" height="94" rx="18" fill="#191B32" stroke="#ECA0CB" stroke-width="2"/>
+ <rect x="757" y="157" width="7" height="20" rx="3" fill="#ECA0CB"/>
+ <text x="775" y="175" font-family="Arial,sans-serif" font-size="21" fill="#FFFFFF" font-weight="750">Verifikasi chip</text>
+ <text x="758" y="202" font-family="Arial,sans-serif" font-size="14" fill="#C9CDE3">ESP32 classic + MAC</text><rect x="978" y="140" width="211" height="94" rx="18" fill="#191B32" stroke="#6DE3BE" stroke-width="2"/>
+ <rect x="994" y="157" width="7" height="20" rx="3" fill="#6DE3BE"/>
+ <text x="1012" y="175" font-family="Arial,sans-serif" font-size="21" fill="#FFFFFF" font-weight="750">Upload ESP32</text>
+ <text x="995" y="202" font-family="Arial,sans-serif" font-size="14" fill="#C9CDE3">Pilih PM atau GAS</text><path d="M241 186h26" stroke="#B59AF3" stroke-width="4" stroke-linecap="round"/><path d="m259 179 11 7-11 7Z" fill="#B59AF3"/><path d="M478 186h26" stroke="#B59AF3" stroke-width="4" stroke-linecap="round"/><path d="m496 179 11 7-11 7Z" fill="#B59AF3"/><path d="M715 186h26" stroke="#B59AF3" stroke-width="4" stroke-linecap="round"/><path d="m733 179 11 7-11 7Z" fill="#B59AF3"/><path d="M952 186h26" stroke="#B59AF3" stroke-width="4" stroke-linecap="round"/><path d="m970 179 11 7-11 7Z" fill="#B59AF3"/>
+ <rect x="30" y="274" width="1140" height="43" rx="12" fill="#2A2144" stroke="#61478F" stroke-width="1"/>
+ <text x="48" y="302" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#EBDDFF">SETELAH SELESAI  ·  Folder sesi dihapus otomatis (firmware, core, library, build, log sementara).</text>
+ </svg>

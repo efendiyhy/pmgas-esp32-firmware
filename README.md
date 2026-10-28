@@ -1,85 +1,86 @@
-# EK Instrumentation — ESP32 Firmware Installer
+**Website resmi:** [**EK Instrumentation — ek-instrumentation.com**](https://ek-instrumentation.com)
 
-**One-shot firmware compiler & uploader** untuk dua perangkat monitoring terpisah: **PM** dan **Gas AQI**. Sistem berjalan dari Windows PowerShell, mengambil versi firmware terbaru dari GitHub **pada setiap eksekusi**, dan membersihkan seluruh folder kerja sementara setelah selesai.
+<p align="center">
+  <img src="assets/github/hero.svg" alt="EK Instrumentation ESP32 Firmware Tool — PM and Gas" width="100%" />
+</p>
 
-| Firmware | Perangkat | Sensor |
+<p align="center">
+  <a href="https://github.com/efendiyhy/pmgas-merge">Laptop Server</a> ·
+  <a href="https://ek-instrumentation.com">Company Website</a>
+</p>
+
+# EK ESP32 PM & Gas — Firmware Installer
+
+**Compiler dan uploader firmware berbasis PowerShell** untuk dua alat monitoring yang **berbeda secara fisik**: alat **PM** dan alat **Gas AQI**. Installer mengambil kode terbaru dari GitHub pada setiap sesi, menyiapkan lingkungan kompilasi Arduino CLI terisolasi, kemudian membersihkan berkas sesi setelah proses berakhir.
+
+**Target:** ESP32 klasik (ESP32-WROOM-32 / ESP32 DevKit V1) · **Sistem operasi:** Windows 10/11 64-bit · **Tidak perlu:** Arduino IDE maupun library EspUsbHost.
+
+## Instalasi cepat — Compile & Upload
+
+Hubungkan **satu alat** ke port USB laptop, buka **Windows PowerShell**, lalu jalankan:
+
+```powershell
+irm https://raw.githubusercontent.com/efendiyhy/pmgas-esp32-firmware/main/install.ps1 | iex
+```
+
+Ikuti menu di terminal:
+
+1. Pilih **Monitoring PM** atau **Monitoring Gas** sesuai alat yang benar-benar terhubung.
+2. Installer menyiapkan Arduino CLI, ESP32 board core, dan library yang dibutuhkan.
+3. Pilih **Compile Only** untuk memeriksa kode, atau lanjut ke proses upload.
+4. Untuk upload, pilih port **COM**, lalu periksa identitas chip **ESP32 klasik** dan MAC address.
+5. Konfirmasi firmware yang dipilih sebelum flashing. Jangan cabut USB selama upload.
+6. Setelah berhasil, gagal, atau dibatalkan secara normal, installer membersihkan berkas sementara sesi tersebut.
+
+> **Keamanan:** Menjalankan `irm | iex` mengeksekusi skrip dari internet. Tinjau [`install.ps1`](install.ps1) sebelum menggunakan dan pastikan alamat repository dapat dipercaya.
+
+## Dua firmware, dua perangkat
+
+| Firmware | Sensor utama | Penggunaan |
 | --- | --- | --- |
-| PM Monitoring | Alat monitoring partikulat | 2× PMS5003T + SHT31 |
-| Gas AQI Monitoring | Alat monitoring gas | MH-Z19C + MiCS-4514 + SHT31 |
+| **PM Monitoring** | 2 × PMS5003T + SHT31 | Partikel PM1, PM2.5, PM10, suhu, dan kelembapan. |
+| **Gas AQI Monitoring** | MH-Z19C + MiCS-4514 + SHT31 | CO₂, indikator CO/NO₂ sesuai kalibrasi firmware, suhu, dan kelembapan. |
 
-**Target hardware:** ESP32 klasik (ESP32-WROOM-32 / ESP32 DevKit V1).
+Keduanya menggunakan ESP32 klasik, tetapi **wiring, pembacaan sensor, dan firmware tidak boleh dipertukarkan**. Jenis alat **tidak bisa dipastikan hanya dari port COM atau MAC address**, sehingga konfirmasi perangkat fisik tetap wajib.
 
-## Quick Start — Windows
+## Alur installer
 
-**Persyaratan:** Windows 10/11 64-bit, Windows PowerShell 5.1+, koneksi internet, cukup ruang kosong untuk toolchain ESP32 (disarankan beberapa GB), kabel USB data, serta driver CH340/CP210x sesuai board. Driver USB tidak diinstal oleh tool ini.
+<p align="center">
+  <img src="assets/github/architecture.svg" alt="Diagram alur download, compile, verifikasi ESP32, upload, dan cleanup" width="100%" />
+</p>
 
-1. Hubungkan alat PM **atau** Gas ke USB laptop.
-2. Buka **Windows PowerShell**.
-3. Jalankan:
+**One-shot / tanpa instalasi permanen:** firmware, Arduino CLI portabel, ESP32 core, library, hasil compile, serta log sementara ditempatkan dalam folder sesi terisolasi di `%TEMP%` dan **dicoba dihapus otomatis saat sesi berakhir**. Setiap menjalankan perintah di atas, kode diunduh ulang dari branch `main`.
 
-   ```powershell
-   irm https://raw.githubusercontent.com/efendiyhy/pmgas-esp32-firmware/main/install.ps1 | iex
-   ```
+**Konsekuensi:** ESP32 board core berukuran besar; karena ikut dihapus, proses berikutnya perlu mengunduhnya lagi. Installer **tidak** menghapus Arduino IDE atau driver USB yang sebelumnya telah terpasang, dan tidak menghapus firmware yang sudah di-flash ke ESP32.
 
-4. Pilih **Monitoring PM** atau **Monitoring Gas** sesuai perangkat fisik.
-5. Tunggu persiapan ESP32 core dan library, serta kompilasi otomatis.
-6. Pilih **Compile Only** (tidak upload) atau lanjut ke upload.
-7. Jika upload, pilih COM, periksa identitas **ESP32 klasik + MAC**, lalu ketik konfirmasi nama firmware yang dipilih.
-8. Setelah selesai/ditolak/gagal, installer berusaha menghapus semua file hasil unduhan dan build dari sesi itu.
+Pembersihan tidak dapat dijamin jika proses dimatikan paksa, Windows masih mengunci file, atau listrik terputus. Installer akan mencoba memberi tahu lokasi folder sesi yang tersisa.
 
-**Setiap proses upload atau kompilasi baru harus diawali dengan perintah yang sama.** Tidak ada aplikasi firmware permanen, shortcut, atau salinan firmware yang sengaja disimpan oleh installer.
+## Setelah upload: buka dashboard ESP32
 
-> Menjalankan `irm | iex` berarti mengeksekusi skrip dari internet. Tinjau isi [`install.ps1`](install.ps1) terlebih dahulu dan pastikan URL berasal dari repository yang dipercaya.
-
-## Cara Kerja & Pembersihan
-
-Sistem memakai direktori sementara unik di `%TEMP%` (nama diawali `EK-PMGAS-ONESHOT-`). Di dalam sesi tersebut terdapat:
-
-- source `.ino` dan `EK_Dashboard.h` terbaru dari repository GitHub;
-- Arduino CLI portabel, ESP32 core, serta Adafruit SHT31/BusIO dalam profil Arduino **terisolasi**;
-- hasil kompilasi, log sementara, dan cache build;
-- data verifikasi chip/MAC yang hanya ditampilkan selama sesi, tidak didaftarkan permanen.
-
-Saat sesi berakhir, folder tersebut dibersihkan otomatis menggunakan blok `finally`. Cleanup juga dicoba saat terjadi error atau pengguna membatalkan upload. **Jika Windows masih mengunci file**, terminal akan menampilkan lokasi folder yang perlu dihapus manual.
-
-Tidak ada uninstall karena aplikasi tidak diinstal permanen. Jika terdapat folder aplikasi firmware dari installer EK versi lama (`%LOCALAPPDATA%\EKInstrumentation\PMGasFirmwareTool`), installer baru juga berusaha menghapusnya setelah sesi, termasuk registrasi MAC/log lama. **Tidak** menghapus direktori laptop-server (`...\LaptopServer`). Tidak perlu menghapus `Documents/Arduino`.
-
-**Batasan:** pembersihan hanya mencakup berkas yang dibuat di dalam folder sesi. Kami tidak menghapus instalasi Arduino IDE/CLI lama, driver, cache/riwayat sistem Windows, riwayat PowerShell, maupun konfigurasi dan data dalam ESP32 atau microSD. Penghentian paksa proses atau mati listrik dapat menyisakan folder sementara.
-
-**Konsekuensi:** karena ESP32 core dan library ikut dibersihkan, proses berikutnya perlu mengunduh toolchain lagi, yang relatif besar dan memerlukan internet.
-
-## Keamanan Saat Upload
-
-- Verifikasi chip melalui `esptool` dengan parameter `--chip esp32` sebelum upload.
-- Menampilkan port COM dan MAC address sebelum konfirmasi akhir.
-- Meminta pengguna mengetik `PM` atau `GAS` secara eksplisit untuk memulai flashing.
-- **Jenis alat tidak dapat dideteksi dari chip/MAC saja.** Pengguna wajib memeriksa perangkat fisik, kabel sensor, dan tujuan firmware.
-- Karena tidak menyimpan registrasi MAC antar-sesi, sistem **tidak dapat mengingat** bahwa sebuah MAC pernah digunakan sebagai PM atau Gas. Selalu verifikasi sebelum flashing.
-- Arduino CLI menggunakan FQBN `esp32:esp32:esp32`, target ESP32 core **3.3.12**.
-
-## Monitoring Perangkat
-
-| Perangkat | Wi-Fi AP | Dashboard |
+| Alat | Hotspot konfigurasi | Alamat dashboard |
 | --- | --- | --- |
 | PM | `PM-MONITOR-SETUP` | `http://192.168.4.1` |
 | Gas | `AQI-SETUP` | `http://192.168.4.1` |
 
-Password default hotspot pada firmware referensi adalah `12345678`. Ubah untuk penggunaan di lingkungan yang tidak tepercaya. Firmware mempertahankan fitur monitoring offline, konfigurasi Wi-Fi, microSD, Supabase, dan pengiriman LAN ke laptop-server.
+Password hotspot bawaan firmware referensi: `12345678`. Demi keamanan, ganti password sebelum penggunaan di lingkungan non-laboratorium.
 
-**Catatan kabel microSD:** konfigurasi kode mengasumsikan CS GPIO5, SCK GPIO18, MISO GPIO19, MOSI GPIO23. Cocokkan wiring fisik sebelum flash.
+Dari dashboard ESP32, pengguna dapat melihat data sensor meski tidak terhubung ke router, mencari jaringan **Wi-Fi 2,4 GHz**, mengatur koneksi Wi-Fi, memeriksa microSD, dan mengaktifkan pengiriman data ke laptop-server. Perubahan Wi-Fi Scan terbaru memprioritaskan pemindaian terhadap percobaan auto-reconnect saat router tersimpan tidak tersedia.
 
-## Masalah Umum
+**MicroSD (SPI, asumsi kode):** CS `GPIO5`, SCK `GPIO18`, MISO `GPIO19`, MOSI `GPIO23`. Cocokkan konfigurasi pin dengan wiring alat nyata sebelum flashing.
 
-| Gejala | Pemeriksaan |
-| --- | --- |
-| Port COM tidak muncul | Gunakan kabel data; periksa driver CH340/CP210x dan Device Manager. |
-| Chip/MAC gagal diperiksa | Tutup Serial Monitor, pilih COM yang benar, coba BOOT sesuai board. |
-| Board bukan ESP32 klasik | Upload dibatalkan; ESP32-S3/S2/C3 tidak didukung. |
-| Unduhan core/library gagal | Pastikan internet dan ruang penyimpanan cukup. Jalankan kembali perintah instalasi. |
-| Upload gagal | Periksa sambungan USB, daya, dan kemungkinan konflik port. Salin error dari terminal **sebelum menutupnya**. |
-| Folder sementara gagal dibersihkan | Tutup proses yang mengunci file, lalu hapus folder sesi yang dicetak installer. |
+## Integrasi dengan Laptop Server
 
-## Struktur Repository
+Firmware mendukung pengiriman data ke aplikasi laptop dalam jaringan LAN yang sama. Jalankan [EK Air Quality Hub](https://github.com/efendiyhy/pmgas-merge), lihat IP laptop, lalu masukkan **alamat IPv4 saja** pada menu **Laptop Server** di dashboard masing-masing ESP32.
+
+Contoh: `192.168.1.100` akan membentuk tujuan:
+
+```text
+http://192.168.1.100:8787/api/ingest
+```
+
+Pengiriman ke Supabase merupakan konfigurasi terpisah. Jangan memasukkan `service_role` key atau kredensial admin ke firmware yang disimpan secara publik. Gunakan pengaturan keamanan basis data sesuai kebutuhan aplikasi.
+
+## Struktur source
 
 ```text
 pmgas-esp32-firmware/
@@ -93,15 +94,42 @@ pmgas-esp32-firmware/
 │   └── GAS_ESP32_CLASSIC/
 │       ├── GAS_ESP32_CLASSIC.ino
 │       └── EK_Dashboard.h
+├── assets/github/           # Gambar dokumentasi
 └── .github/workflows/compile.yml
 ```
 
-Aplikasi **PM/Gas Laptop Server** berada di repository terpisah: [pmgas-merge](https://github.com/efendiyhy/pmgas-merge).
+Sumber dashboard berada pada `EK_Dashboard.h`; file ini **harus tetap berada pada folder sketch yang sama** dengan `.ino` ketika dibuka secara manual melalui Arduino IDE.
 
-## Pengujian dan Batasan
+## Persyaratan dan batasan
 
-Struktur proyek dan skrip telah diperiksa secara statis. Pengujian langsung alur instalasi/cleanup di Windows serta flashing dua perangkat fisik **belum dilakukan**. Workflow GitHub Actions akan menguji kompilasi ketika kode di-push.
+- Windows PowerShell 5.1+ dan koneksi internet saat proses installer.
+- Kabel USB **data**, driver USB-Serial yang sesuai (misalnya CH340 atau CP210x), dan ruang penyimpanan sementara yang memadai.
+- ESP32 klasik; ESP32-S2, ESP32-S3, ESP32-C3, dan proyek Muon **bukan target** installer ini.
+- Port COM tidak boleh digunakan oleh Serial Monitor atau aplikasi lain saat flashing.
+- Kompilasi otomatis memakai FQBN `esp32:esp32:esp32` dan Arduino-ESP32 core yang ditentukan oleh script.
 
-Gunakan hanya publishable/anon key Supabase yang dibatasi RLS. Jangan menyimpan password jaringan, `service_role` atau kredensial privat pada repository publik.
+**Status pengujian:** Pemeriksaan statis paket dan skrip bukan pengganti tes kompilasi sesungguhnya dan flashing pada hardware. Workflow `.github/workflows/compile.yml` menyediakan pengujian kompilasi saat dijalankan melalui GitHub Actions; hasilnya perlu dilihat pada tab Actions repository.
 
-Referensi: [Arduino CLI](https://docs.arduino.cc/arduino-cli/) · [Arduino ESP32](https://espressif.github.io/arduino-esp32/) · [esptool](https://docs.espressif.com/projects/esptool/en/latest/)
+## Pemecahan masalah
+
+| Gejala | Solusi awal |
+| --- | --- |
+| Tidak ada COM | Periksa kabel data, Device Manager, dan driver USB-Serial. |
+| ESP tidak terdeteksi | Tutup Serial Monitor, cek port, ulangi sambungan USB, dan gunakan tombol BOOT bila diperlukan. |
+| Gagal verifikasi chip | Pastikan benar-benar ESP32 klasik; installer menolak keluarga chip lain. |
+| Proses download lama / gagal | ESP32 core besar. Pastikan koneksi stabil, ruang disk cukup, dan jalankan ulang installer. |
+| Wi-Fi Scan kosong | Gunakan Wi-Fi 2,4 GHz, pastikan firmware terbaru terunggah, dan periksa log serial `115200`. |
+| Gagal upload | Periksa suplai daya, port USB, dan identitas perangkat fisik yang dipilih. |
+| Folder TEMP tertinggal | Tutup proses yang mengunci file; hapus hanya folder sesi `EK-PMGAS-ONESHOT-*` milik installer setelah proses benar-benar berhenti. |
+
+## Bersih otomatis / uninstall
+
+Tidak ada aplikasi firmware yang dipasang permanen oleh installer one-shot, sehingga tidak diperlukan uninstall biasa. File firmware dan toolchain sementara dibersihkan setelah sesi berakhir. Driver USB, Arduino IDE milik pengguna, data microSD, Supabase, dan [Laptop Server](https://github.com/efendiyhy/pmgas-merge) **tidak** ikut dihapus.
+
+---
+
+<p align="center">
+  <a href="https://ek-instrumentation.com"><strong>EK Instrumentation</strong></a><br/>
+  <sub>Environmental Monitoring · Embedded Systems · Data Acquisition</sub><br/>
+  <a href="https://github.com/efendiyhy/pmgas-merge">Laptop Server</a> · <a href="https://github.com/efendiyhy/pmgas-esp32-firmware">ESP32 Firmware Tool</a>
+</p>
